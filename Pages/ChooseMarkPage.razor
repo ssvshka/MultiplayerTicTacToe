@@ -1,0 +1,16 @@
+﻿@page "/ChooseMark"
+@inject IGameService GameService
+@inject NavigationManager _navigationManager
+
+<h3>Choose Your Mark</h3>
+
+<button @onclick="_ => ChangeMarkTo(MarkEnum.X)"> X </button>
+<button @onclick="_ => ChangeMarkTo(MarkEnum.O)"> O </button>
+
+@code {
+    private void ChangeMarkTo(MarkEnum mark)
+    {
+        GameService.Player.Mark = mark;
+        _navigationManager.NavigateTo("/Game");
+    }
+}

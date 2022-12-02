@@ -1,0 +1,25 @@
+﻿@using Syncfusion.Blazor.Inputs
+@inject IGameService GameService
+@inject NavigationManager _navigationManager
+
+<h3>Enter your nickname</h3>
+<SfTextBox @bind-Value="@playerName" Width="400px"></SfTextBox>
+<br />
+<button @onclick="LogIn">Enter</button>
+@code {
+    private string? playerName;
+    private void LogIn()
+    {
+        SetPlayerName();
+        _navigationManager.NavigateTo("/ChooseMark");
+    }
+
+    private void SetPlayerName()
+    {
+        if (playerName is null)
+            GameService.Player.Name = "Anonymous";
+        else
+            GameService.Player.Name = playerName;
+        GameService.PlayersNames.Insert(0, GameService.Player.Name);
+    }
+}

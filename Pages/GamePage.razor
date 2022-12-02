@@ -1,0 +1,80 @@
+﻿@page "/Game"
+@using MultiplayerTicTacToe.Models
+@inject IGameService GameService
+@inject NavigationManager _navigationManager
+
+<div class="square">
+    @for (var tt = 1; tt <= 3; tt++)
+    {
+        for (var vv = 1; vv <= 3; vv++)
+        {
+            var square = GameService.Squares[((((tt - 1) * 3) + vv) - 1)];
+            <SquareComponent Square="@square" ClickParameter="@(e => SquareClick(e, square))"></SquareComponent>
+        }
+    }
+</div>
+<div class="footer">
+    <p><button @onclick="@Reset">Reset game</button></p>
+    @if (GameService.Winner.HasValue)
+    {
+        <p class="score-board">@GameService.Winner.Value has won the game!</p>
+    }
+    else if (GameService.Squares.Count(x => x.Mark.HasValue) == 9)
+    {
+        <p class="score-board">Game has been drawn.</p>
+    }
+
+    <p class="score-board">@GameService.PlayersNames.First() @GameService.Player.Score -
+        @GameService.Opponent.Score @GameService.PlayersNames.Last()
+    </p>
+</div>
+
+@code {
+    private HubConnection? hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        GameService.ResetGame();
+        await StartHubConnection();
+    }
+
+    public async Task SquareClick(MouseEventArgs mouseEventArgs, Square square)
+    {
+        if (!GameService.Winner.HasValue)
+        {
+            square.Mark = GameService.Player.Mark;
+            await SendTurn(square);
+            GameService.FindWinner();
+        }
+        GameService.UpdateScores();
+    }
+
+    public void Reset(MouseEventArgs mouseEventArgs)
+    {
+        GameService.ResetGame();
+        StateHasChanged();
+    }
+
+    private async Task StartHubConnection()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(_navigationManager.ToAbsoluteUri("/MultiplayerHub"))
+            .WithAutomaticReconnect()
+            .Build();
+        hubConnection.On<Square>("GetTurn", async (square) =>
+        {
+            GameService.Squares[square.Number - 1].Mark = square.Mark;
+            await InvokeAsync(StateHasChanged);
+        });
+        await hubConnection.StartAsync();
+    }
+
+    private async Task SendTurn(Square square)
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendTurn", square);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}
